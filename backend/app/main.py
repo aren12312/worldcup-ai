@@ -1,18 +1,30 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from app.api.predictions import router as prediction_router
 from app.api.matches import router as matches_router
 
-app = FastAPI(title="WorldCup AI Professional")
+app = FastAPI(title="Football Analyst AI")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
-def root():
+async def root():
+
     return {
-        "service": "WorldCup AI",
+        "service": "Football Analyst AI",
         "status": "running"
     }
 
 @app.get("/health")
-def health():
+async def health():
+
     return {"ok": True}
 
 app.include_router(prediction_router)
