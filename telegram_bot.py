@@ -11,7 +11,7 @@ from telegram.ext import (
 
 from dotenv import load_dotenv
 
-from backend.app.services.prediction_engine import generate_prediction
+from app.services.prediction_engine import generate_prediction
 
 load_dotenv()
 
@@ -53,7 +53,7 @@ async def analyze_match(update: Update, context: ContextTypes.DEFAULT_TYPE):
 Draw: {probs['draw']}%
 {team2}: {probs['team2_win']}%
 
-🔥 Analysis
+🔥 AI Analysis
 - {prediction['analysis'][0]}
 - {prediction['analysis'][1]}
 - {prediction['analysis'][2]}
