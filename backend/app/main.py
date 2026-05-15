@@ -1,10 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.predictions import router as prediction_router
-from app.api.matches import router as matches_router
+from backend.app.api.predictions import router as prediction_router
+from backend.app.api.matches import router as matches_router
 
-app = FastAPI(title="Football Analyst AI")
+app = FastAPI(
+    title="Football Analyst AI"
+)
 
 app.add_middleware(
     CORSMiddleware,
