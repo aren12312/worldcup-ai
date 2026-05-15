@@ -5,7 +5,7 @@ router = APIRouter()
 
 @router.get('/predict')
 def predict(
-    team1: str = Query(..., description="Home team"), 
-    team2: str = Query(..., description="Away team")
+    team1: str = Query(..., description="Home Team"), 
+    team2: str = Query(..., description="Away Team")
 ):
     return generate_prediction(team1, team2)

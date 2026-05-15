@@ -6,3 +6,5 @@ numpy
 scikit-learn
 xgboost
 python-dotenv
+python-telegram-bot
+
