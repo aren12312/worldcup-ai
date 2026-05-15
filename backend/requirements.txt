@@ -1,10 +1,13 @@
 fastapi
 uvicorn
-requests
-pandas
+httpx
+pydantic
+python-dotenv
+sqlalchemy
+psycopg2-binary
+redis
 numpy
+pandas
 scikit-learn
 xgboost
-python-dotenv
 python-telegram-bot
-
