@@ -5,12 +5,11 @@ router = APIRouter()
 
 @router.get('/predict')
 def predict(
-    team1: str = Query(..., description="Name of the first team"), 
-    team2: str = Query(..., description="Name of the second team")
+    team1: str = Query(..., description="Home team name"), 
+    team2: str = Query(..., description="Away team name")
 ):
     """
-    מקבל שתי קבוצות ומחזיר ניתוח הסתברויות לניצחון.
-    דוגמה: /api/v1/predict?team1=Brazil&team2=France
+    API Endpoint לקבלת תחזית למשחק.
+    שימוש: /api/v1/predict?team1=Argentina&team2=France
     """
-    result = generate_prediction(team1, team2)
-    return result
+    return generate_prediction(team1, team2)
