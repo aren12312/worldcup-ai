@@ -1,32 +1,17 @@
-import random
+import numpy as np
 
-def simulate_match():
 
-    simulations = 5000
+def simulate_match(team1_xg: float, team2_xg: float, simulations: int = 10000) -> dict:
+    """Poisson-based Monte Carlo match simulation."""
+    team1_scores = np.random.poisson(team1_xg, simulations)
+    team2_scores = np.random.poisson(team2_xg, simulations)
 
-    team1 = 0
-    draw = 0
-    team2 = 0
-
-    for _ in range(simulations):
-
-        team1_score = random.gauss(2.0, 1.0)
-        team2_score = random.gauss(1.4, 1.0)
-
-        if team1_score > team2_score:
-            team1 += 1
-
-        elif team2_score > team1_score:
-            team2 += 1
-
-        else:
-            draw += 1
+    team1_wins = int(np.sum(team1_scores > team2_scores))
+    team2_wins = int(np.sum(team2_scores > team1_scores))
+    draws = simulations - team1_wins - team2_wins
 
     return {
-
-        "team1_win": round(team1/simulations*100, 2),
-
-        "draw": round(draw/simulations*100, 2),
-
-        "team2_win": round(team2/simulations*100, 2)
+        "team1_win": round(team1_wins / simulations * 100, 1),
+        "draw": round(draws / simulations * 100, 1),
+        "team2_win": round(team2_wins / simulations * 100, 1),
     }

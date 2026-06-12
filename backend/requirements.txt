@@ -3,10 +3,4 @@ uvicorn
 httpx
 python-dotenv
 numpy
-pandas
-scikit-learn
-xgboost
-redis
-sqlalchemy
-psycopg2-binary
 python-telegram-bot
