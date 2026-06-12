@@ -24,6 +24,10 @@ def t(key: str, lang: str, **kwargs: Any) -> str:
             "he": "נמוכה — ודא ש-FOOTBALL_DATA_API_KEY מוגדר ב-GitHub Secrets",
             "en": "low — ensure FOOTBALL_DATA_API_KEY is set in GitHub Secrets",
         },
+        "data_quality_api_no_matches": {
+            "he": "בינונית — המפתח פעיל, ממתין לנתוני משחקים עדכניים",
+            "en": "medium — API key active, awaiting recent match data",
+        },
         "rec_draw": {
             "he": "משחק צמוד — סיכוי תיקו {draw:.0f}%, שתי הקבוצות שוות",
             "en": "Tight match — {draw:.0f}% draw, teams evenly matched",

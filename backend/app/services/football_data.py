@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 import httpx
@@ -151,21 +152,30 @@ async def find_team(name: str) -> Optional[dict]:
 
 
 async def get_recent_fixtures(team_id: int, last: int = 5) -> List[dict]:
-    data = await _get(
-        f"/teams/{team_id}/matches",
-        params={"status": "FINISHED", "limit": last},
-    )
-    if not data:
-        return []
+    date_from = (datetime.utcnow() - timedelta(days=400)).strftime("%Y-%m-%d")
 
-    fixtures = []
-    for item in data.get("matches", []):
-        parsed = _parse_match(item, team_id)
-        if parsed.get("team_goals") is None:
+    param_sets = [
+        {"status": "FINISHED", "limit": 10, "dateFrom": date_from},
+        {"limit": 10, "dateFrom": date_from},
+        {"status": "FINISHED", "limit": 10},
+    ]
+
+    for params in param_sets:
+        data = await _get(f"/teams/{team_id}/matches", params=params)
+        if not data:
             continue
-        fixtures.append(parsed)
 
-    return fixtures[:last]
+        fixtures = []
+        for item in data.get("matches", []):
+            parsed = _parse_match(item, team_id)
+            if parsed.get("team_goals") is None:
+                continue
+            fixtures.append(parsed)
+
+        if fixtures:
+            return fixtures[:last]
+
+    return []
 
 
 async def get_head_to_head(team1_id: int, team2_id: int, last: int = 5) -> List[dict]:

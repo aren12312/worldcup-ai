@@ -74,6 +74,8 @@ def build_recommendation(
 
 
 def assess_data_quality(team1: dict, team2: dict, context: dict, lang: str = "he") -> str:
+    from backend.app.services.config import has_live_data_api
+
     live_sources = sum(
         1
         for team in (team1, team2)
@@ -83,4 +85,6 @@ def assess_data_quality(team1: dict, team2: dict, context: dict, lang: str = "he
         return t("data_quality_high", lang)
     if live_sources >= 1:
         return t("data_quality_medium", lang)
+    if has_live_data_api():
+        return t("data_quality_api_no_matches", lang)
     return t("data_quality_low", lang)
