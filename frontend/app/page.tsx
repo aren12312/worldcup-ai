@@ -37,6 +37,8 @@ type Prediction = {
   data_quality: string;
   has_live_data: boolean;
   data_sources: Record<string, string>;
+  market_odds?: { odds?: Record<string, number>; event?: string } | null;
+  weather?: { city?: string; description?: string; temp_c?: number; impact_he?: string } | null;
 };
 
 const COLORS = ["#22c55e", "#94a3b8", "#3b82f6"];
@@ -276,7 +278,7 @@ export default function Home() {
                     </ul>
                   ) : (
                     <p className="text-sm text-white/50">
-                      אין נתונים — הוסף API_FOOTBALL_KEY ב-Cloud Run
+                      אין נתונים — ודא ש-FOOTBALL_DATA_API_KEY מוגדר ב-GitHub
                     </p>
                   )}
                 </div>
@@ -294,6 +296,33 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
+              </div>
+            )}
+
+            {(result.market_odds?.odds || result.weather) && (
+              <div className="grid gap-4 md:grid-cols-2">
+                {result.market_odds?.odds && (
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                    <h4 className="mb-3 font-semibold">💰 יחסי שוק (Odds API)</h4>
+                    <ul className="space-y-1 text-sm">
+                      {Object.entries(result.market_odds.odds).map(([name, price]) => (
+                        <li key={name} className="flex justify-between rounded bg-black/20 px-3 py-2">
+                          <span>{name}</span>
+                          <span className="font-bold text-gold">{price}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {result.weather && (
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                    <h4 className="mb-3 font-semibold">🌤️ מזג אוויר</h4>
+                    <p className="text-sm text-white/80">
+                      {result.weather.city}: {result.weather.description}, {result.weather.temp_c}°C
+                    </p>
+                    <p className="mt-2 text-sm text-gold">{result.weather.impact_he}</p>
+                  </div>
+                )}
               </div>
             )}
           </section>

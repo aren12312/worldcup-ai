@@ -21,8 +21,8 @@ def t(key: str, lang: str, **kwargs: Any) -> str:
             "en": "medium — partial data from local database",
         },
         "data_quality_low": {
-            "he": "נמוכה — הוסף API_FOOTBALL_KEY לנתונים אמיתיים",
-            "en": "low — add API_FOOTBALL_KEY for real match data",
+            "he": "נמוכה — ודא ש-FOOTBALL_DATA_API_KEY מוגדר ב-GitHub Secrets",
+            "en": "low — ensure FOOTBALL_DATA_API_KEY is set in GitHub Secrets",
         },
         "rec_draw": {
             "he": "משחק צמוד — סיכוי תיקו {draw:.0f}%, שתי הקבוצות שוות",

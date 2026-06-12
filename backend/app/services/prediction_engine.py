@@ -1,5 +1,5 @@
 from backend.app.data.hebrew_teams import display_team_name, normalize_team_input
-from backend.app.services import api_football
+from backend.app.services import match_data
 from backend.app.services.i18n import t
 from backend.app.services.monte_carlo import simulate_match
 from backend.app.services.research import generate_analysis
@@ -10,6 +10,7 @@ from backend.app.services.stats_engine import (
     compute_upset_risk,
 )
 from backend.app.services.team_resolver import resolve_team
+from backend.app.services.weather_api import fetch_match_weather
 
 
 async def generate_prediction(team1: str, team2: str, lang: str = "he") -> dict:
@@ -25,7 +26,9 @@ async def generate_prediction(team1: str, team2: str, lang: str = "he") -> dict:
     display_team1 = display_team_name(team1_data["name"], lang)
     display_team2 = display_team_name(team2_data["name"], lang)
 
-    context = await api_football.get_match_context(team1_data, team2_data)
+    context = await match_data.get_match_context(team1_data, team2_data)
+    market_odds = await match_data.fetch_market_odds(team1_data["name"], team2_data["name"])
+    weather = await fetch_match_weather(team1_data["name"], team2_data["name"])
 
     team1_xg = compute_expected_goals(team1_data, team2_data)
     team2_xg = compute_expected_goals(team2_data, team1_data)
@@ -56,6 +59,8 @@ async def generate_prediction(team1: str, team2: str, lang: str = "he") -> dict:
         recommendation,
         context,
         lang,
+        market_odds=market_odds,
+        weather=weather,
     )
 
     data_quality = assess_data_quality(team1_data, team2_data, context, lang)
@@ -83,6 +88,8 @@ async def generate_prediction(team1: str, team2: str, lang: str = "he") -> dict:
         "recent_form": analysis_payload.get("recent_form", {}),
         "head_to_head": analysis_payload.get("head_to_head", []),
         "h2h_summary": analysis_payload.get("h2h_summary", ""),
+        "market_odds": market_odds,
+        "weather": weather,
         "upset_risk": upset_risk,
         "recommendation": recommendation,
         "data_quality": data_quality,

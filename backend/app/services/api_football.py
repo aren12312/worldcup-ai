@@ -5,7 +5,9 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
-API_KEY = os.getenv("API_FOOTBALL_KEY")
+from backend.app.services.config import get_api_football_key
+
+API_KEY = get_api_football_key()
 BASE_URL = "https://v3.football.api-sports.io"
 HEADERS = {"x-apisports-key": API_KEY} if API_KEY else {}
 

@@ -8,6 +8,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.app.api.matches import router as matches_router
 from backend.app.api.predictions import router as prediction_router
 from backend.app.api.telegram import process_update, setup_webhook, shutdown_webhook
+from backend.app.services.config import (
+    get_openai_key,
+    get_odds_key,
+    get_telegram_token,
+    get_weather_key,
+    has_football_data,
+    has_live_data_api,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -17,7 +25,7 @@ PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if PUBLIC_BASE_URL and os.getenv("TELEGRAM_TOKEN"):
+    if PUBLIC_BASE_URL and get_telegram_token():
         try:
             await setup_webhook(PUBLIC_BASE_URL)
         except Exception:
@@ -46,9 +54,12 @@ async def root():
         "service": "Football Analyst AI",
         "status": "running",
         "lang": "he",
-        "telegram": bool(os.getenv("TELEGRAM_TOKEN")),
-        "api_football": bool(os.getenv("API_FOOTBALL_KEY")),
-        "openai": bool(os.getenv("OPENAI_API_KEY")),
+        "telegram": bool(get_telegram_token()),
+        "football_data": has_football_data(),
+        "live_data": has_live_data_api(),
+        "odds_api": bool(get_odds_key()),
+        "weather_api": bool(get_weather_key()),
+        "openai": bool(get_openai_key()),
     }
 
 

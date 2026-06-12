@@ -8,9 +8,11 @@ import httpx
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
+from backend.app.services.config import get_telegram_token
+
 logger = logging.getLogger(__name__)
 
-TOKEN = os.getenv("TELEGRAM_TOKEN")
+TOKEN = get_telegram_token()
 API_URL = os.getenv("PUBLIC_BASE_URL") or os.getenv("API_URL", "http://localhost:8080")
 LANG = "he"
 
@@ -70,7 +72,7 @@ async def live_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not matches:
             msg = "אין משחקים live כרגע."
             if not data.get("api_configured"):
-                msg += "\n\n⚠️ הוסף API_FOOTBALL_KEY ב-Cloud Run לנתונים אמיתיים."
+                msg += "\n\n⚠️ הוסף FOOTBALL_DATA_API_KEY ב-GitHub Secrets."
             await update.message.reply_text(msg)
             return
         lines = ["🔴 משחקים LIVE:\n"]

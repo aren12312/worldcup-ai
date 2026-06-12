@@ -8,7 +8,7 @@ import httpx
 
 from backend.app.services.i18n import t
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+from backend.app.services.config import get_openai_key
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 
@@ -81,6 +81,8 @@ async def generate_analysis(
     recommendation: str,
     context: dict,
     lang: str = "he",
+    market_odds: Optional[dict] = None,
+    weather: Optional[dict] = None,
 ) -> dict:
     recent_form = {
         team1: _format_recent_matches(team1, team1_data.get("recent_matches", []), lang),
@@ -89,7 +91,7 @@ async def generate_analysis(
     head_to_head = _format_h2h(context.get("head_to_head", []), lang)
     h2h_summary = _h2h_summary(team1, team2, context.get("head_to_head", []), lang)
 
-    if OPENAI_API_KEY:
+    if get_openai_key():
         llm = await _llm_analysis(
             team1,
             team2,
@@ -102,6 +104,8 @@ async def generate_analysis(
             head_to_head,
             h2h_summary,
             lang,
+            market_odds,
+            weather,
         )
         if llm:
             llm["recent_form"] = recent_form
@@ -121,6 +125,8 @@ async def generate_analysis(
         head_to_head,
         h2h_summary,
         lang,
+        market_odds,
+        weather,
     )
 
 
@@ -136,6 +142,8 @@ async def _llm_analysis(
     head_to_head: List[str],
     h2h_summary: str,
     lang: str,
+    market_odds: Optional[dict] = None,
+    weather: Optional[dict] = None,
 ) -> Optional[dict]:
     lang_instruction = "Respond entirely in Hebrew." if lang == "he" else "Respond in English."
 
@@ -163,6 +171,8 @@ async def _llm_analysis(
         "expected_goals": expected_goals,
         "probabilities": probabilities,
         "recommendation": recommendation,
+        "market_odds": market_odds,
+        "weather": weather,
     }
 
     prompt = f"""You are an elite World Cup football analyst. {lang_instruction}
@@ -184,7 +194,7 @@ Return JSON with this exact structure:
             response = await client.post(
                 "https://api.openai.com/v1/chat/completions",
                 headers={
-                    "Authorization": f"Bearer {OPENAI_API_KEY}",
+                    "Authorization": f"Bearer {get_openai_key()}",
                     "Content-Type": "application/json",
                 },
                 json={
@@ -220,6 +230,8 @@ def _fallback_analysis(
     head_to_head: List[str],
     h2h_summary: str,
     lang: str,
+    market_odds: Optional[dict] = None,
+    weather: Optional[dict] = None,
 ) -> dict:
     favorite = team1 if probabilities["team1_win"] >= probabilities["team2_win"] else team2
     fav_prob = max(probabilities["team1_win"], probabilities["team2_win"])
@@ -247,7 +259,17 @@ def _fallback_analysis(
             bullets.append(f"🔄 {h2h_summary}")
             bullets.append(f"   אחרון: {head_to_head[0]}")
         else:
-            bullets.append("🔄 אין נתוני H2H עדכניים מה-API")
+            bullets.append("🔄 אין נתוני H2H עדכניים — בדוק FOOTBALL_DATA_API_KEY")
+
+        if market_odds and market_odds.get("odds"):
+            odds_str = ", ".join(f"{k}: {v}" for k, v in market_odds["odds"].items())
+            bullets.append(f"💰 יחסי הימורים (שוק): {odds_str}")
+
+        if weather:
+            bullets.append(
+                f"🌤️ מזג אוויר ({weather.get('city')}): {weather.get('description')} "
+                f"{weather.get('temp_c')}°C — {weather.get('impact_he')}"
+            )
 
         bullets.append(
             f"⚽ xG צפוי: {team1} {expected_goals[team1]} | {team2} {expected_goals[team2]}"

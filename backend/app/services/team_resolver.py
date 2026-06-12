@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from backend.app.data.hebrew_teams import normalize_team_input
 from backend.app.data.teams import TEAMS
-from backend.app.services import api_football
+from backend.app.services import match_data
 from backend.app.services.i18n import t
 
 
@@ -26,9 +26,9 @@ async def resolve_team(name: str) -> dict:
     canonical = normalize_team_input(name)
     local = resolve_from_database(canonical)
     if local:
-        return await api_football.build_team_profile(local["name"], local)
+        return await match_data.build_team_profile(local["name"], local)
 
-    api_team = await api_football.search_team(canonical)
+    api_team = await match_data.search_team(canonical)
     if api_team:
         return api_team
 
