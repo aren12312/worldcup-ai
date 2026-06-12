@@ -8,7 +8,7 @@ import httpx
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
-from backend.app.services.config import get_bot_username, get_telegram_token
+from backend.app.services.config import get_bot_username, get_telegram_chat_id, get_telegram_token
 
 logger = logging.getLogger(__name__)
 
@@ -190,6 +190,19 @@ async def setup_webhook(base_url: str) -> None:
         drop_pending_updates=True,
     )
     logger.info("Telegram webhook registered: %s", webhook_url)
+
+    chat_id = get_telegram_chat_id()
+    if chat_id:
+        try:
+            await application.bot.send_message(
+                chat_id=chat_id,
+                text=(
+                    "✅ @WorldCupApi פעיל על Cloud Run!\n\n"
+                    "שלח: ברזיל נגד צרפת"
+                ),
+            )
+        except Exception:
+            logger.exception("Failed to send startup message to TELEGRAM_CHAT_ID")
 
 
 async def process_update(update_data: dict) -> None:

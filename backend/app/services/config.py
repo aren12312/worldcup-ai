@@ -17,6 +17,10 @@ def get_bot_username() -> str:
     return name.lstrip("@")
 
 
+def get_telegram_chat_id() -> str:
+    return os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or ""
+
+
 def get_football_data_key() -> str:
     return os.getenv("FOOTBALL_DATA_API_KEY") or ""
 
