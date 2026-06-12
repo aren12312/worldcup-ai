@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from typing import List, Optional
 
+from backend.app.data.hebrew_teams import normalize_team_input
 from backend.app.data.teams import TEAMS
 from backend.app.services import api_football
+from backend.app.services.i18n import t
 
 
 def _normalize(name: str) -> str:
-    return name.strip().lower()
+    return normalize_team_input(name).strip().lower()
 
 
 def resolve_from_database(name: str) -> Optional[dict]:
@@ -21,19 +23,22 @@ def resolve_from_database(name: str) -> Optional[dict]:
 
 
 async def resolve_team(name: str) -> dict:
-    """Resolve a team name to ratings, preferring live API data when available."""
-    local = resolve_from_database(name)
+    canonical = normalize_team_input(name)
+    local = resolve_from_database(canonical)
     if local:
-        enriched = await api_football.enrich_team(name, local)
-        return enriched
+        return await api_football.build_team_profile(local["name"], local)
 
-    api_team = await api_football.search_team(name)
+    api_team = await api_football.search_team(canonical)
     if api_team:
         return api_team
 
-    raise ValueError(f"Unknown team: {name}. Try a major national team like Brazil or France.")
+    raise ValueError(t("unknown_team", "he", name=name))
 
 
-async def list_teams() -> List[str]:
+async def list_teams(lang: str = "he") -> List[str]:
+    from backend.app.data.hebrew_teams import display_team_name
+
     names = sorted({team["name"] for team in TEAMS.values()})
+    if lang == "he":
+        return [display_team_name(name, "he") for name in names]
     return names

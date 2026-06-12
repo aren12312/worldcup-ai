@@ -2,12 +2,73 @@ from __future__ import annotations
 
 import json
 import os
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import httpx
 
+from backend.app.services.i18n import t
+
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+
+def _format_recent_matches(team_name: str, matches: List[dict], lang: str) -> List[str]:
+    lines = []
+    for match in matches[:5]:
+        outcome = match.get("outcome", "?")
+        if lang == "he":
+            outcome_map = {"W": "נצ'", "D": "תיקו", "L": "הפסד"}
+            outcome = outcome_map.get(outcome, outcome)
+        lines.append(
+            f"{match.get('date')} | {outcome} {match.get('score')} vs {match.get('opponent')} "
+            f"({match.get('competition', '')})"
+        )
+    return lines
+
+
+def _format_h2h(matches: List[dict], lang: str) -> List[str]:
+    lines = []
+    for match in matches[:5]:
+        lines.append(
+            f"{match.get('date')} | {match.get('home_team')} {match.get('score')} "
+            f"{match.get('away_team')} ({match.get('competition', '')})"
+        )
+    return lines
+
+
+def _h2h_summary(team1: str, team2: str, h2h: List[dict], lang: str) -> str:
+    if not h2h:
+        return t("no_recent_data", lang)
+
+    t1_wins = t2_wins = draws = 0
+    for match in h2h:
+        home = match.get("home_team", "")
+        score = match.get("score", "0-0")
+        try:
+            hg, ag = score.split("-")
+            hg, ag = int(hg), int(ag)
+        except ValueError:
+            continue
+
+        if hg == ag:
+            draws += 1
+        elif (home == team1 and hg > ag) or (home == team2 and ag > hg):
+            if home == team1:
+                t1_wins += 1
+            else:
+                t2_wins += 1
+        else:
+            if home == team1:
+                t2_wins += 1
+            else:
+                t1_wins += 1
+
+    if lang == "he":
+        return (
+            f"Head-to-Head אחרון ({len(h2h)} משחקים): "
+            f"{team1} {t1_wins} נצ' | תיקו {draws} | {team2} {t2_wins} נצ'"
+        )
+    return f"Recent H2H ({len(h2h)}): {team1} {t1_wins}W | Draw {draws} | {team2} {t2_wins}W"
 
 
 async def generate_analysis(
@@ -18,9 +79,18 @@ async def generate_analysis(
     expected_goals: dict,
     probabilities: dict,
     recommendation: str,
-) -> List[str]:
+    context: dict,
+    lang: str = "he",
+) -> dict:
+    recent_form = {
+        team1: _format_recent_matches(team1, team1_data.get("recent_matches", []), lang),
+        team2: _format_recent_matches(team2, team2_data.get("recent_matches", []), lang),
+    }
+    head_to_head = _format_h2h(context.get("head_to_head", []), lang)
+    h2h_summary = _h2h_summary(team1, team2, context.get("head_to_head", []), lang)
+
     if OPENAI_API_KEY:
-        llm_analysis = await _llm_analysis(
+        llm = await _llm_analysis(
             team1,
             team2,
             team1_data,
@@ -28,9 +98,16 @@ async def generate_analysis(
             expected_goals,
             probabilities,
             recommendation,
+            recent_form,
+            head_to_head,
+            h2h_summary,
+            lang,
         )
-        if llm_analysis:
-            return llm_analysis
+        if llm:
+            llm["recent_form"] = recent_form
+            llm["head_to_head"] = head_to_head
+            llm["h2h_summary"] = h2h_summary
+            return llm
 
     return _fallback_analysis(
         team1,
@@ -39,6 +116,11 @@ async def generate_analysis(
         team2_data,
         expected_goals,
         probabilities,
+        recommendation,
+        recent_form,
+        head_to_head,
+        h2h_summary,
+        lang,
     )
 
 
@@ -50,23 +132,55 @@ async def _llm_analysis(
     expected_goals: dict,
     probabilities: dict,
     recommendation: str,
-) -> Optional[List[str]]:
-    prompt = f"""You are a professional football analyst for World Cup matches.
-Analyze this match using ONLY the data provided. Respond in English with exactly 3 bullet points.
+    recent_form: dict,
+    head_to_head: List[str],
+    h2h_summary: str,
+    lang: str,
+) -> Optional[dict]:
+    lang_instruction = "Respond entirely in Hebrew." if lang == "he" else "Respond in English."
 
-Match: {team1} vs {team2}
+    dossier = {
+        "team1": team1,
+        "team2": team2,
+        "team1_recent": recent_form.get(team1, []),
+        "team2_recent": recent_form.get(team2, []),
+        "head_to_head": head_to_head,
+        "h2h_summary": h2h_summary,
+        "team1_stats": {
+            "attack": team1_data.get("attack"),
+            "defense": team1_data.get("defense"),
+            "form": team1_data.get("form"),
+            "avg_scored": team1_data.get("avg_goals_scored"),
+            "avg_conceded": team1_data.get("avg_goals_conceded"),
+        },
+        "team2_stats": {
+            "attack": team2_data.get("attack"),
+            "defense": team2_data.get("defense"),
+            "form": team2_data.get("form"),
+            "avg_scored": team2_data.get("avg_goals_scored"),
+            "avg_conceded": team2_data.get("avg_goals_conceded"),
+        },
+        "expected_goals": expected_goals,
+        "probabilities": probabilities,
+        "recommendation": recommendation,
+    }
 
-{team1} ratings — attack: {team1_data['attack']}, defense: {team1_data['defense']}, form: {team1_data['form']}
-{team2} ratings — attack: {team2_data['attack']}, defense: {team2_data['defense']}, form: {team2_data['form']}
+    prompt = f"""You are an elite World Cup football analyst. {lang_instruction}
+Use ONLY the real match data in the dossier below. Do not invent scores or events.
 
-Expected goals: {team1} {expected_goals[team1]}, {team2} {expected_goals[team2]}
-Win probabilities: {team1} {probabilities['team1_win']}%, Draw {probabilities['draw']}%, {team2} {probabilities['team2_win']}%
-Recommendation: {recommendation}
+DOSSIER:
+{json.dumps(dossier, ensure_ascii=False, indent=2)}
 
-Return JSON: {{"analysis": ["point1", "point2", "point3"]}}"""
+Return JSON with this exact structure:
+{{
+  "summary": "2-3 sentence executive summary",
+  "key_factors": ["factor1", "factor2", "factor3", "factor4", "factor5"],
+  "detailed": "A detailed paragraph (5-8 sentences) citing specific recent results and H2H",
+  "analysis": ["bullet1", "bullet2", "bullet3", "bullet4", "bullet5"]
+}}"""
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=45.0) as client:
             response = await client.post(
                 "https://api.openai.com/v1/chat/completions",
                 headers={
@@ -76,7 +190,7 @@ Return JSON: {{"analysis": ["point1", "point2", "point3"]}}"""
                 json={
                     "model": OPENAI_MODEL,
                     "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.4,
+                    "temperature": 0.3,
                     "response_format": {"type": "json_object"},
                 },
             )
@@ -86,9 +200,8 @@ Return JSON: {{"analysis": ["point1", "point2", "point3"]}}"""
 
         content = response.json()["choices"][0]["message"]["content"]
         parsed = json.loads(content)
-        bullets = parsed.get("analysis", [])
-        if len(bullets) >= 3:
-            return bullets[:3]
+        if parsed.get("analysis") and parsed.get("summary"):
+            return parsed
     except (KeyError, json.JSONDecodeError, httpx.HTTPError):
         return None
 
@@ -102,24 +215,77 @@ def _fallback_analysis(
     team2_data: dict,
     expected_goals: dict,
     probabilities: dict,
-) -> List[str]:
-    stronger_attack = team1 if team1_data["attack"] >= team2_data["attack"] else team2
-    stronger_defense = team1 if team1_data["defense"] >= team2_data["defense"] else team2
+    recommendation: str,
+    recent_form: dict,
+    head_to_head: List[str],
+    h2h_summary: str,
+    lang: str,
+) -> dict:
     favorite = team1 if probabilities["team1_win"] >= probabilities["team2_win"] else team2
+    fav_prob = max(probabilities["team1_win"], probabilities["team2_win"])
 
-    return [
-        (
-            f"{stronger_attack} carries the stronger attack profile "
-            f"(xG {expected_goals[stronger_attack]:.1f} vs "
-            f"{expected_goals[team2 if stronger_attack == team1 else team1]:.1f})"
-        ),
-        (
-            f"{stronger_defense} looks more solid defensively "
-            f"(rating {max(team1_data['defense'], team2_data['defense'])}/100)"
-        ),
-        (
-            f"Model edge favors {favorite} at "
-            f"{max(probabilities['team1_win'], probabilities['team2_win']):.0f}% win probability "
-            f"with {probabilities['draw']:.0f}% draw chance"
-        ),
-    ]
+    if lang == "he":
+        bullets = []
+
+        if recent_form.get(team1):
+            bullets.append(f"📈 {team1} — 5 משחקים אחרונים: " + " | ".join(recent_form[team1][:3]))
+        else:
+            bullets.append(
+                f"📈 {team1} — ממוצע {team1_data.get('avg_goals_scored', 'N/A')} שערים למשחק "
+                f"(הגנה {team1_data['defense']}/100)"
+            )
+
+        if recent_form.get(team2):
+            bullets.append(f"📈 {team2} — 5 משחקים אחרונים: " + " | ".join(recent_form[team2][:3]))
+        else:
+            bullets.append(
+                f"📈 {team2} — ממוצע {team2_data.get('avg_goals_scored', 'N/A')} שערים למשחק "
+                f"(הגנה {team2_data['defense']}/100)"
+            )
+
+        if head_to_head:
+            bullets.append(f"🔄 {h2h_summary}")
+            bullets.append(f"   אחרון: {head_to_head[0]}")
+        else:
+            bullets.append("🔄 אין נתוני H2H עדכניים מה-API")
+
+        bullets.append(
+            f"⚽ xG צפוי: {team1} {expected_goals[team1]} | {team2} {expected_goals[team2]}"
+        )
+        bullets.append(
+            f"🎯 המודל מעדיף {favorite} ({fav_prob:.0f}% ניצחון, "
+            f"{probabilities['draw']:.0f}% תיקו)"
+        )
+
+        summary = (
+            f"ניתוח {team1} נגד {team2}: {recommendation}. "
+            f"הסתברויות — {team1} {probabilities['team1_win']}%, "
+            f"תיקו {probabilities['draw']}%, {team2} {probabilities['team2_win']}%."
+        )
+
+        detailed = (
+            f"{summary} "
+            f"{team1} מציגה טופס {team1_data.get('form_string') or 'לא ידוע'} "
+            f" עם יכולת התקפית {team1_data['attack']}/100. "
+            f"{team2} בטופס {team2_data.get('form_string') or 'לא ידוע'} "
+            f" עם הגנה {team2_data['defense']}/100. "
+            f"{h2h_summary if head_to_head else t('no_recent_data', lang)}"
+        )
+    else:
+        bullets = [
+            f"{team1} xG {expected_goals[team1]} | {team2} xG {expected_goals[team2]}",
+            f"Model favors {favorite} at {fav_prob:.0f}%",
+            h2h_summary,
+        ]
+        summary = recommendation
+        detailed = summary
+
+    return {
+        "summary": summary,
+        "key_factors": bullets[:5],
+        "detailed": detailed,
+        "analysis": bullets,
+        "recent_form": recent_form,
+        "head_to_head": head_to_head,
+        "h2h_summary": h2h_summary,
+    }

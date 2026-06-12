@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "WorldCup AI Analyst",
-  description: "AI-powered World Cup match predictions and analysis",
+  title: "WorldCup AI — אנליסט משחקים",
+  description: "חיזוי וניתוח משחקי מונדיאל בעברית על בסיס נתונים אמיתיים",
 };
 
 export default function RootLayout({
@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="he" dir="rtl">
       <body>{children}</body>
     </html>
   );
