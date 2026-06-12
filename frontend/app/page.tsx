@@ -106,7 +106,15 @@ export default function Home() {
           <h1 className="text-4xl font-bold md:text-5xl">אנליסט AI למשחקי כדורגל</h1>
           <p className="mx-auto mt-4 max-w-2xl text-white/70">
             חיזוי מדויק על בסיס 5 משחקים אחרונים, היסטוריית H2H, וסימולציית Poisson.
-            הניתוח בעברית עם נתונים מ-API-Football.
+            בוט טלגרם:{" "}
+            <a
+              href="https://t.me/WorldCupApi"
+              className="text-gold underline"
+              target="_blank"
+              rel="noreferrer"
+            >
+              @WorldCupApi
+            </a>
           </p>
         </header>
 

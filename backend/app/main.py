@@ -9,6 +9,7 @@ from backend.app.api.matches import router as matches_router
 from backend.app.api.predictions import router as prediction_router
 from backend.app.api.telegram import process_update, setup_webhook, shutdown_webhook
 from backend.app.services.config import (
+    get_bot_username,
     get_openai_key,
     get_odds_key,
     get_telegram_token,
@@ -54,6 +55,7 @@ async def root():
         "service": "Football Analyst AI",
         "status": "running",
         "lang": "he",
+        "bot": f"@{get_bot_username()}",
         "telegram": bool(get_telegram_token()),
         "football_data": has_football_data(),
         "live_data": has_live_data_api(),

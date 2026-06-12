@@ -4,7 +4,17 @@ import os
 
 
 def get_telegram_token() -> str:
-    return os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN") or ""
+    token = os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN") or ""
+    if token and ":" not in token:
+        bot_id = os.getenv("TELEGRAM_BOT_ID", "")
+        if bot_id:
+            return f"{bot_id}:{token}"
+    return token
+
+
+def get_bot_username() -> str:
+    name = os.getenv("TELEGRAM_BOT_USERNAME", "WorldCupApi")
+    return name.lstrip("@")
 
 
 def get_football_data_key() -> str:

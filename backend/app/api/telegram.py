@@ -8,7 +8,7 @@ import httpx
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
-from backend.app.services.config import get_telegram_token
+from backend.app.services.config import get_bot_username, get_telegram_token
 
 logger = logging.getLogger(__name__)
 
@@ -37,15 +37,16 @@ def _parse_match(text: str):
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    bot = get_bot_username()
     await update.message.reply_text(
-        "⚽ WorldCup AI — אנליסט משחקים\n\n"
+        f"⚽ @{bot} — אנליסט משחקי מונדיאל\n\n"
         "שלח משחק בעברית או באנגלית:\n"
         "🇧🇷 ברזיל נגד צרפת\n"
         "🇧🇷 Brazil vs France\n\n"
         "פקודות:\n"
         "/predict ברזיל נגד צרפת\n"
         "/teams — רשימת קבוצות\n"
-        "/live — משחקים live (דורש API key)"
+        "/live — משחקים live"
     )
 
 
