@@ -2,6 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap');
+
 body {
-  @apply bg-pitch-950 text-white antialiased;
+  @apply bg-[#060d09] text-white antialiased;
+  font-family: 'Heebo', system-ui, sans-serif;
+}
+
+.glass {
+  @apply border border-white/10 bg-white/[0.04] backdrop-blur-xl;
+}
+
+.glow-gold {
+  box-shadow: 0 0 40px rgba(245, 197, 66, 0.15);
+}
+
+.stat-bar {
+  @apply h-2 rounded-full bg-white/10;
+}
+
+.stat-fill {
+  @apply h-2 rounded-full bg-gradient-to-l from-gold to-emerald-400;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+@media print {
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  body { background: white; color: black; }
 }

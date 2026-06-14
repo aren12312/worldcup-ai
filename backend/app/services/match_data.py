@@ -13,15 +13,25 @@ def api_enabled() -> bool:
 
 
 async def build_team_profile(name: str, fallback: dict) -> dict:
-    if has_football_data():
-        profile = await football_data.build_team_profile(name, fallback)
-        if profile.get("recent_matches"):
-            return profile
+    profile = await football_data.build_team_profile(name, fallback)
+    if profile.get("recent_matches"):
+        return profile
 
     if api_football.api_enabled():
         return await api_football.build_team_profile(name, fallback)
 
-    return {**fallback, "recent_matches": [], "form_string": ""}
+    return profile
+
+
+async def get_match_context(team1: dict, team2: dict) -> dict:
+    ctx = await football_data.get_match_context(team1, team2)
+    if ctx.get("has_live_data"):
+        return ctx
+
+    if api_football.api_enabled():
+        return await api_football.get_match_context(team1, team2)
+
+    return ctx
 
 
 async def search_team(name: str) -> Optional[dict]:
@@ -30,18 +40,6 @@ async def search_team(name: str) -> Optional[dict]:
 
 async def enrich_team(name: str, local: dict) -> dict:
     return await build_team_profile(name, local)
-
-
-async def get_match_context(team1: dict, team2: dict) -> dict:
-    if has_football_data() and team1.get("team_id") and team2.get("team_id"):
-        ctx = await football_data.get_match_context(team1, team2)
-        if ctx.get("has_live_data"):
-            return ctx
-
-    if api_football.api_enabled():
-        return await api_football.get_match_context(team1, team2)
-
-    return {"head_to_head": [], "has_live_data": False}
 
 
 async def get_live_matches() -> List[Dict[str, Any]]:

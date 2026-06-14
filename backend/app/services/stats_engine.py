@@ -79,7 +79,7 @@ def assess_data_quality(team1: dict, team2: dict, context: dict, lang: str = "he
     live_sources = sum(
         1
         for team in (team1, team2)
-        if team.get("source") in ("api_football_live", "football_data_live") and team.get("recent_matches")
+        if team.get("source") in ("api_football_live", "football_data_live", "curated_database") and team.get("recent_matches")
     )
     if live_sources == 2 and context.get("head_to_head"):
         return t("data_quality_high", lang)

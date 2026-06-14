@@ -5,13 +5,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        pitch: {
-          950: "#071a12",
-          900: "#0b2e1f",
-          800: "#124a32",
-        },
+        pitch: { 950: "#060d09", 900: "#0a1a12", 800: "#124a32" },
         gold: "#f5c542",
+        accent: "#10b981",
       },
+      fontFamily: { heebo: ["Heebo", "sans-serif"] },
     },
   },
   plugins: [],
