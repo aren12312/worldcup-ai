@@ -114,7 +114,10 @@ async def analyze_match(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     team1, team2 = parsed
     await update.message.reply_text(f"🔍 מנתח {team1} נגד {team2}...")
+    asyncio.create_task(_send_prediction(update, team1, team2))
 
+
+async def _send_prediction(update: Update, team1: str, team2: str) -> None:
     try:
         async with httpx.AsyncClient(timeout=90.0) as client:
             response = await client.get(
@@ -141,7 +144,6 @@ async def analyze_match(update: Update, context: ContextTypes.DEFAULT_TYPE):
     probs = p["probabilities"]
     xg = p["expected_goals"]
     xg_vals = list(xg.values())
-    xg_keys = list(xg.keys())
 
     lines = [
         f"⚽ {p['match']}",

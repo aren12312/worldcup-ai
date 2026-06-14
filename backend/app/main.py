@@ -2,7 +2,7 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import BackgroundTasks, FastAPI, Request
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.api.matches import router as matches_router
@@ -90,9 +90,9 @@ async def telegram_setup():
 
 
 @app.post("/telegram/webhook")
-async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
+async def telegram_webhook(request: Request):
     data = await request.json()
-    background_tasks.add_task(process_update, data)
+    await process_update(data)
     return {"ok": True}
 
 
