@@ -101,15 +101,40 @@ async def live_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ שגיאה בשליפת משחקים live")
 
 
+_HELP_TEXT = (
+    "👋 אני @{bot} — אנליסט משחקי מונדיאל מבוסס AI.\n\n"
+    "כדי לקבל ניתוח, שלח שתי נבחרות בפורמט:\n"
+    "• ברזיל נגד צרפת\n"
+    "• ארגנטינה מול אנגליה\n"
+    "• Spain vs Germany\n\n"
+    "פקודות:\n"
+    "/predict ברזיל נגד צרפת — ניתוח משחק\n"
+    "/teams — רשימת נבחרות\n"
+    "/live — משחקים חיים\n"
+    "/help — עזרה"
+)
+
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message:
+        await update.message.reply_text(_HELP_TEXT.format(bot=get_bot_username()))
+
+
 async def analyze_match(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message:
         return
 
-    text = update.message.text or ""
+    text = (update.message.text or "").strip()
     parsed = _parse_match(text)
 
     if not parsed:
-        await update.message.reply_text("שלח משחק:\nברזיל נגד צרפת")
+        await update.message.reply_text(
+            "🤔 לא זיהיתי משחק בהודעה.\n\n"
+            "שלח שתי נבחרות, למשל:\n"
+            "🇧🇷 ברזיל נגד צרפת\n"
+            "🇦🇷 ארגנטינה מול אנגליה\n\n"
+            "או שלח /help לרשימת הפקודות."
+        )
         return
 
     team1, team2 = parsed
@@ -186,12 +211,28 @@ def _build_application() -> Application:
     app = Application.builder().token(token).build()
     app.add_error_handler(_error_handler)
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("teams", list_teams_command))
     app.add_handler(CommandHandler("live", live_command))
     app.add_handler(CommandHandler("predict", analyze_match))
     app.add_handler(CommandHandler("analyze", analyze_match))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, analyze_match))
     return app
+
+
+async def _register_commands() -> None:
+    from telegram import BotCommand
+
+    try:
+        await application.bot.set_my_commands([
+            BotCommand("start", "התחל / עזרה"),
+            BotCommand("predict", "נתח משחק (ברזיל נגד צרפת)"),
+            BotCommand("teams", "רשימת נבחרות"),
+            BotCommand("live", "משחקים חיים"),
+            BotCommand("help", "עזרה"),
+        ])
+    except Exception:
+        logger.exception("Could not set bot commands")
 
 
 async def setup_webhook(base_url: Optional[str] = None) -> dict:
@@ -212,6 +253,7 @@ async def setup_webhook(base_url: Optional[str] = None) -> dict:
             application = _build_application()
             await application.initialize()
             await application.start()
+            await _register_commands()
             logger.info("Telegram application started")
 
         webhook_url = f"{url}/telegram/webhook"

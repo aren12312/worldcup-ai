@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import Dict, List
 
 from backend.app.services.i18n import t
 
@@ -23,6 +23,46 @@ def compute_expected_goals(
     form = 0.55 + team.get("form", 0.7) * 0.45
     xg = attack * defense_factor * form * 2.8 * home_advantage
     return round(max(0.55, min(3.2, xg)), 2)
+
+
+def expected_goals_breakdown(
+    team: dict,
+    opponent: dict,
+    *,
+    home_advantage: float = 1.0,
+    lang: str = "he",
+) -> Dict:
+    """Decompose the final xG into additive factor contributions for explainability.
+
+    Returns the total xG plus a list of {label, value} contributions that sum to it.
+    """
+    xg = compute_expected_goals(team, opponent, home_advantage=home_advantage)
+
+    attack_strength = team.get("attack", 75) / 100.0
+    opp_defense = opponent.get("defense", 75) / 100.0
+    form = team.get("form", 0.7)
+
+    he = lang == "he"
+    baseline = 1.30
+
+    attack_contrib = (attack_strength - 0.75) * 1.6
+    defense_contrib = (0.75 - opp_defense) * 1.4
+    form_contrib = (form - 0.7) * 1.2
+    home_contrib = (home_advantage - 1.0) * baseline
+
+    raw = baseline + attack_contrib + defense_contrib + form_contrib + home_contrib
+    scale = xg / raw if raw > 0 else 1.0
+
+    factors = [
+        {"label": "בסיס" if he else "Baseline", "value": round(baseline * scale, 2)},
+        {"label": "כושר התקפה" if he else "Attack", "value": round(attack_contrib * scale, 2)},
+        {"label": "הגנת היריב" if he else "Opp. defense", "value": round(defense_contrib * scale, 2)},
+        {"label": "טופס" if he else "Form", "value": round(form_contrib * scale, 2)},
+    ]
+    if abs(home_contrib) > 0.001:
+        factors.append({"label": "יתרון מיקום" if he else "Venue", "value": round(home_contrib * scale, 2)})
+
+    return {"xg": xg, "factors": factors}
 
 
 def compute_upset_risk(probabilities: dict, lang: str = "he") -> str:

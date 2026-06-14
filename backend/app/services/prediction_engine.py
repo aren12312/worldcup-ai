@@ -3,16 +3,26 @@ from backend.app.data.key_players import get_key_players
 from backend.app.services import match_data
 from backend.app.services.analytics_report import build_analytics_report, build_team_comparison
 from backend.app.services.i18n import t
-from backend.app.services.monte_carlo import confidence_score, simulate_match, top_scorelines
+from backend.app.services.monte_carlo import (
+    DEFAULT_RHO,
+    confidence_score,
+    scoreline_grid,
+    simulate_match,
+    top_scorelines,
+)
 from backend.app.services.research import generate_analysis
 from backend.app.services.stats_engine import (
     assess_data_quality,
     build_recommendation,
     compute_expected_goals,
     compute_upset_risk,
+    expected_goals_breakdown,
 )
 from backend.app.services.team_resolver import resolve_team
+from backend.app.services.value_engine import build_value_analysis
 from backend.app.services.weather_api import fetch_match_weather
+
+HOME_ADVANTAGE = 1.08
 
 
 async def generate_prediction(team1: str, team2: str, lang: str = "he") -> dict:
@@ -32,11 +42,17 @@ async def generate_prediction(team1: str, team2: str, lang: str = "he") -> dict:
     market_odds = await match_data.fetch_market_odds(team1_data["name"], team2_data["name"])
     weather = await fetch_match_weather(team1_data["name"], team2_data["name"])
 
-    team1_xg = compute_expected_goals(team1_data, team2_data)
+    team1_xg = compute_expected_goals(team1_data, team2_data, home_advantage=HOME_ADVANTAGE)
     team2_xg = compute_expected_goals(team2_data, team1_data)
+
+    team1_breakdown = expected_goals_breakdown(
+        team1_data, team2_data, home_advantage=HOME_ADVANTAGE, lang=lang,
+    )
+    team2_breakdown = expected_goals_breakdown(team2_data, team1_data, lang=lang)
 
     probabilities = simulate_match(team1_xg, team2_xg)
     scorelines = top_scorelines(team1_xg, team2_xg)
+    grid = scoreline_grid(team1_xg, team2_xg, max_goals=5)
     confidence = confidence_score(probabilities, context.get("has_live_data", False))
 
     expected_goals = {display_team1: team1_xg, display_team2: team2_xg}
@@ -58,6 +74,10 @@ async def generate_prediction(team1: str, team2: str, lang: str = "he") -> dict:
         display_team1, display_team2, team1_data, team2_data,
         expected_goals, probabilities, recommendation, context, lang,
         market_odds=market_odds, weather=weather,
+    )
+
+    value_analysis = build_value_analysis(
+        probabilities, market_odds, display_team1, display_team2, lang,
     )
 
     data_quality = assess_data_quality(team1_data, team2_data, context, lang)
@@ -82,12 +102,25 @@ async def generate_prediction(team1: str, team2: str, lang: str = "he") -> dict:
             "team1_win": probabilities["team1_win"],
             "draw": probabilities["draw"],
             "team2_win": probabilities["team2_win"],
+            "over_1_5": probabilities.get("over_1_5"),
             "over_2_5": probabilities.get("over_2_5"),
+            "over_3_5": probabilities.get("over_3_5"),
             "btts_yes": probabilities.get("btts_yes"),
         },
         "labels": {"team1": display_team1, "team2": display_team2, "draw": draw_label},
         "expected_goals": expected_goals,
+        "xg_breakdown": {display_team1: team1_breakdown, display_team2: team2_breakdown},
         "scorelines": scorelines,
+        "scoreline_grid": grid,
+        "probability_bands": probabilities.get("bands"),
+        "value_analysis": value_analysis,
+        "sim_params": {
+            "team1_xg": team1_xg,
+            "team2_xg": team2_xg,
+            "rho": DEFAULT_RHO,
+            "team1": display_team1,
+            "team2": display_team2,
+        },
         "analysis": analysis_payload.get("analysis", []),
         "summary": analysis_payload.get("summary", ""),
         "detailed": analysis_payload.get("detailed", ""),

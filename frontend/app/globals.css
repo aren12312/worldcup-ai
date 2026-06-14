@@ -2,36 +2,73 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  --bg: #050a07;
+}
 
 body {
-  @apply bg-[#060d09] text-white antialiased;
+  @apply bg-pitch-950 text-white antialiased;
   font-family: 'Heebo', system-ui, sans-serif;
+  background-image:
+    radial-gradient(1200px 600px at 80% -10%, rgba(16, 185, 129, 0.12), transparent),
+    radial-gradient(900px 500px at 0% 0%, rgba(245, 197, 66, 0.08), transparent);
+  background-attachment: fixed;
 }
 
 .glass {
-  @apply border border-white/10 bg-white/[0.04] backdrop-blur-xl;
+  @apply border border-white/10 bg-white/[0.045] backdrop-blur-xl;
+}
+
+.glass-strong {
+  @apply border border-white/15 bg-white/[0.07] backdrop-blur-2xl;
 }
 
 .glow-gold {
   box-shadow: 0 0 40px rgba(245, 197, 66, 0.15);
 }
 
+.card-hover {
+  @apply transition duration-300 hover:-translate-y-0.5 hover:border-white/20;
+}
+
 .stat-bar {
-  @apply h-2 rounded-full bg-white/10;
+  @apply h-2 overflow-hidden rounded-full bg-white/10;
 }
 
 .stat-fill {
-  @apply h-2 rounded-full bg-gradient-to-l from-gold to-emerald-400;
+  @apply h-full rounded-full bg-gradient-to-l from-gold to-emerald-400 transition-all duration-700;
 }
 
-@keyframes pulse-soft {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+.skeleton {
+  @apply relative overflow-hidden rounded-2xl bg-white/[0.05];
+}
+.skeleton::after {
+  content: "";
+  @apply absolute inset-0 -translate-x-full animate-shimmer;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
 }
 
-.animate-pulse-soft {
-  animation: pulse-soft 2s ease-in-out infinite;
+.tab-pill {
+  @apply rounded-full px-5 py-2 text-sm font-medium transition;
+}
+
+.gradient-text {
+  @apply bg-gradient-to-l from-gold via-amber-300 to-emerald-400 bg-clip-text text-transparent;
+}
+
+/* thin scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
 }
 
 @media print {
