@@ -69,6 +69,11 @@ jobs:
           if [ -n "${{ secrets.TELEGRAM_BOT_TOKEN }}" ]; then
             curl -s "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/setWebhook?url=${{ steps.backend.outputs.url }}/telegram/webhook"
             echo ""
+            sleep 15
+            curl -s -X POST "${{ steps.backend.outputs.url }}/telegram/setup"
+            echo ""
+            curl -s "${{ steps.backend.outputs.url }}/telegram/status"
+            echo ""
           else
             echo "TELEGRAM_BOT_TOKEN not set — skipping webhook"
           fi
